@@ -14,9 +14,15 @@ function updateBadgeText(customDate) {
     const holidayDate = new Date(customDate + 'T00:00:00'); // Set time to midnight
     const timeRemaining = holidayDate - currentDate;
     const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24));
+   // const minutes = Math.floor(timeRemaining / (1000 * 60)); // Convert milliseconds to minutes
+
 
     // Send a message to the background script to update the badge text
     chrome.runtime.sendMessage({ type: 'updateBadgeText', text: `${days + 1}` });
+    //chrome.runtime.sendMessage({ type: 'updateBadgeText', text: `${timeRemaining} ms` });
+    //chrome.runtime.sendMessage({ type: 'updateBadgeText', text: `${minutes} min` });
+
+
 }
 
 
@@ -107,12 +113,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const customDate = selectedCustomDate.value;
             // Log to check if the function is being called and the value of customDate
             console.log('Selected custom date:', customDate);
-            // Update the badge text with the selected date
+            // Call the updateBadgeText function with the selected date
             updateBadgeText(customDate);
             // Store the selected custom date in chrome.storage.local
             chrome.storage.local.set({ selectedCustomDate: customDate });
         } else {
-            // Clear badge text and the selected custom date in chrome.storage.local
+            // Clear badge text and remove the selected custom date in chrome.storage.local
             updateBadgeText(null);
             chrome.storage.local.remove('selectedCustomDate');
         }

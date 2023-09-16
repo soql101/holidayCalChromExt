@@ -16,7 +16,7 @@ function updateBadgeText(customDate) {
     const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24));
 
     // Send a message to the background script to update the badge text
-    chrome.runtime.sendMessage({ type: 'updateBadgeText', text: `${days}` });
+    chrome.runtime.sendMessage({ type: 'updateBadgeText', text: `${days + 1}` });
 }
 
 

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Holiday Countdown & Fun Facts</title>
+    <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+    <div class="popup-container">
+        <h1>Next Holiday Countdown</h1>
+        <div class="countdown">
+            <p id="countdown-text">Loading...</p>
+        </div>
+        <div class="custom-date">
+            <h2>Enter Custom Date</h2>
+            <input type="text" id="custom-date-input" placeholder="YYYY-MM-DD">
+            <button id="track-custom-date">Track</button>
+        </div>
+        <div class="custom-dates">
+            <h2>Select a Custom Date</h2>
+            <form id="custom-dates-form">
+                <ul id="custom-dates-list"></ul>
+            </form>
+        </div>
+        <div class="fun-facts">
+            <h2>Fun Facts</h2>
+            <ul id="fun-facts-list">
+                <li>Loading...</li>
+            </ul>
+        </div>
+        <div class="activities">
+            <h2>Activities</h2>
+            <p id="activities-text">Loading...</p>
+        </div>
+    </div>
+    <script src="popup.js"></script>
+</body>
+</html>

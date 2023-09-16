@@ -13,12 +13,6 @@ function updateBadgeText(customDate) {
 
     // Send a message to the background script to update the badge text
     chrome.runtime.sendMessage({ type: 'updateBadgeText', text: `${days}` });
-
-    // Send a message to the background script to add the custom date
-    chrome.runtime.sendMessage({ type: 'addCustomDate', customDate });
-
-    // Store the selected custom date in local storage
-    chrome.storage.local.set({ selectedCustomDate: customDate });
 }
 
 // Function to display a custom date as a radio button in the list
@@ -30,7 +24,7 @@ function displayCustomDateAsRadioButton(customDate) {
     radioBtn.value = customDate;
     listItem.appendChild(radioBtn);
     listItem.appendChild(document.createTextNode(customDate));
-    
+
     // Ensure that customDatesList is defined before appending to it
     const customDatesList = document.getElementById('custom-dates-list');
     if (customDatesList) {
@@ -42,42 +36,27 @@ document.addEventListener('DOMContentLoaded', function () {
     const customDateInput = document.getElementById('custom-date-input');
     const customDatesForm = document.getElementById('custom-dates-form');
 
-    // Function to display custom dates as radio buttons
-    function displayCustomDatesAsRadioButtons(customDates) {
-        const customDatesList = document.getElementById('custom-dates-list');
-        if (!customDatesList) return; // Ensure that customDatesList is defined
-
-        customDatesList.innerHTML = ''; // Clear the list
-
-        const uniqueCustomDates = new Set(customDates); // Use a Set to store unique custom dates
-
-        uniqueCustomDates.forEach((customDate) => {
-            displayCustomDateAsRadioButton(customDate);
-        });
-    }
-
-    // Function to set the selected radio button based on the stored custom date
-    function setSelectedRadioButton(selectedCustomDate) {
-        const radioButtons = customDatesForm.querySelectorAll('input[name="custom-date-radio"]');
-        for (const radioButton of radioButtons) {
-            if (radioButton.value === selectedCustomDate) {
-                radioButton.checked = true;
-                updateBadgeText(selectedCustomDate); // Update badge with the stored custom date
-                break;
-            }
-        }
-    }
-
     // Event listener for the "Track" button
     const trackCustomDateButton = document.getElementById('track-custom-date');
     trackCustomDateButton.addEventListener('click', function () {
         const customDate = customDateInput.value;
-        const customDatesList = document.getElementById('custom-dates-list');
-        const customDates = Array.from(customDatesList.querySelectorAll('li input')).map(input => input.value);
-        
-        if (!customDates.includes(customDate)) {
-            updateBadgeText(customDate);
-            displayCustomDateAsRadioButton(customDate);
+
+        if (customDate) {
+            chrome.storage.local.get('customDates', (data) => {
+                if (!chrome.runtime.lastError) {
+                    const customDates = new Set(data.customDates || []);
+                    if (!customDates.has(customDate)) {
+                        customDates.add(customDate);
+                        chrome.storage.local.set({ customDates: Array.from(customDates) }, () => {
+                            displayCustomDateAsRadioButton(customDate);
+                            // Do not automatically check the newly added radio button
+                            updateBadgeText(null);
+                        });
+                    }
+                } else {
+                    console.error('Error accessing Chrome storage:', chrome.runtime.lastError);
+                }
+            });
         }
     });
 
@@ -87,8 +66,12 @@ document.addEventListener('DOMContentLoaded', function () {
         if (selectedCustomDate) {
             const customDate = selectedCustomDate.value;
             updateBadgeText(customDate);
+            // Store the selected custom date in chrome.storage.local
+            chrome.storage.local.set({ selectedCustomDate: customDate });
         } else {
             updateBadgeText(null); // Clear badge text
+            // Clear the selected custom date in chrome.storage.local
+            chrome.storage.local.remove('selectedCustomDate');
         }
     });
 
@@ -96,11 +79,20 @@ document.addEventListener('DOMContentLoaded', function () {
     chrome.storage.local.get(['customDates', 'selectedCustomDate'], (data) => {
         if (!chrome.runtime.lastError) {
             const customDates = data.customDates || [];
-            displayCustomDatesAsRadioButtons(customDates);
-
             const selectedCustomDate = data.selectedCustomDate;
+
+            // Display custom dates in the list
+            customDates.forEach((customDate) => {
+                displayCustomDateAsRadioButton(customDate);
+            });
+
+            // Set the selected radio button based on the stored custom date
             if (selectedCustomDate) {
-                setSelectedRadioButton(selectedCustomDate);
+                const radioBtn = customDatesForm.querySelector('input[value="' + selectedCustomDate + '"]');
+                if (radioBtn) {
+                    radioBtn.checked = true;
+                    updateBadgeText(selectedCustomDate); // Update badge with the stored custom date
+                }
             }
         } else {
             console.error('Error accessing Chrome storage:', chrome.runtime.lastError);

@@ -1,3 +1,6 @@
+// Define customDatesList as a global variable
+let customDatesList;
+
 // Function to calculate and update the badge text based on custom date
 function updateBadgeText(customDate) {
     // Check if the custom date input is empty or not in a valid date format
@@ -17,7 +20,7 @@ function updateBadgeText(customDate) {
 
 // Function to remove a custom date from the list and update Chrome storage
 function removeCustomDate(customDate) {
-    chrome.storage.local.get('customDates', (data) => {
+    chrome.storage.local.get(['customDates', 'selectedCustomDate'], (data) => {
         if (!chrome.runtime.lastError) {
             const customDates = new Set(data.customDates || []);
             if (customDates.has(customDate)) {
@@ -26,12 +29,17 @@ function removeCustomDate(customDate) {
                     // Remove the list item from the UI
                     const listItem = document.querySelector(`li input[value="${customDate}"]`).parentNode;
                     listItem.remove();
-                    // Clear the badge text if the removed date was selected
-                    const selectedCustomDate = customDatesForm.querySelector('input[name="custom-date-radio"]:checked');
-                    if (selectedCustomDate && selectedCustomDate.value === customDate) {
-                        updateBadgeText(null);
+
+                    const selectedCustomDate = data.selectedCustomDate;
+
+                    // Check if the removed date was the selected date
+                    if (selectedCustomDate === customDate) {
+                        updateBadgeText(null); // Clear the badge text
                         // Clear the selected custom date in chrome.storage.local
                         chrome.storage.local.remove('selectedCustomDate');
+                    } else if (selectedCustomDate) {
+                        // If a different date was selected, update the badge text with the selected date
+                        updateBadgeText(selectedCustomDate);
                     }
                 });
             }
@@ -53,17 +61,37 @@ function createDeleteButton(listItem, customDate) {
 
 document.addEventListener('DOMContentLoaded', function () {
     const customDateInput = document.getElementById('custom-date-input');
-    const customDatesList = document.getElementById('custom-dates-list'); // Change this line
+    customDatesList = document.getElementById('custom-dates-list'); // Assign to the global variable
 
     // Event listener for the "Track" button
     const trackCustomDateButton = document.getElementById('track-custom-date');
     trackCustomDateButton.addEventListener('click', function () {
         const customDate = customDateInput.value;
-
+    
         if (customDate) {
             chrome.storage.local.get('customDates', (data) => {
                 if (!chrome.runtime.lastError) {
                     const customDates = new Set(data.customDates || []);
+                    const selectedCustomDate = customDatesList.querySelector('input[name="custom-date-radio"]:checked');
+    
+                    if (selectedCustomDate) {
+                        const previousSelectedDate = selectedCustomDate.value;
+    
+                        // Remove the selection from the previous date
+                        selectedCustomDate.checked = false;
+    
+                        // If the new date is different from the previous date, update the badge text for the new date
+                        if (customDate !== previousSelectedDate) {
+                            updateBadgeText(customDate);
+                        }
+                    } else {
+                        // If no previous date was selected, simply update the badge text for the new date
+                        // Add a condition to check if a date is selected from the list
+                        if (customDates.has(customDate)) {
+                            updateBadgeText(customDate);
+                        }
+                    }
+    
                     if (!customDates.has(customDate)) {
                         customDates.add(customDate);
                         chrome.storage.local.set({ customDates: Array.from(customDates) }, () => {
@@ -74,13 +102,11 @@ document.addEventListener('DOMContentLoaded', function () {
                             radioBtn.value = customDate;
                             listItem.appendChild(radioBtn);
                             listItem.appendChild(document.createTextNode(customDate));
-
+    
                             // Add a delete button next to the custom date
                             createDeleteButton(listItem, customDate);
-
+    
                             customDatesList.appendChild(listItem);
-                            // Do not automatically check the newly added radio button
-                            updateBadgeText(null);
                         });
                     }
                 } else {
@@ -89,10 +115,11 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
     });
+    
 
     // Event listener for the radio buttons
-    customDatesList.addEventListener('change', function () { // Change this line
-        const selectedCustomDate = customDatesList.querySelector('input[name="custom-date-radio"]:checked'); // Change this line
+    customDatesList.addEventListener('change', function () {
+        const selectedCustomDate = customDatesList.querySelector('input[name="custom-date-radio"]:checked');
         if (selectedCustomDate) {
             const customDate = selectedCustomDate.value;
             updateBadgeText(customDate);

@@ -15,26 +15,45 @@ function updateBadgeText(customDate) {
     chrome.runtime.sendMessage({ type: 'updateBadgeText', text: `${days}` });
 }
 
-// Function to display a custom date as a radio button in the list
-function displayCustomDateAsRadioButton(customDate) {
-    const listItem = document.createElement('li');
-    const radioBtn = document.createElement('input');
-    radioBtn.type = 'radio';
-    radioBtn.name = 'custom-date-radio';
-    radioBtn.value = customDate;
-    listItem.appendChild(radioBtn);
-    listItem.appendChild(document.createTextNode(customDate));
+// Function to remove a custom date from the list and update Chrome storage
+function removeCustomDate(customDate) {
+    chrome.storage.local.get('customDates', (data) => {
+        if (!chrome.runtime.lastError) {
+            const customDates = new Set(data.customDates || []);
+            if (customDates.has(customDate)) {
+                customDates.delete(customDate);
+                chrome.storage.local.set({ customDates: Array.from(customDates) }, () => {
+                    // Remove the list item from the UI
+                    const listItem = document.querySelector(`li input[value="${customDate}"]`).parentNode;
+                    listItem.remove();
+                    // Clear the badge text if the removed date was selected
+                    const selectedCustomDate = customDatesForm.querySelector('input[name="custom-date-radio"]:checked');
+                    if (selectedCustomDate && selectedCustomDate.value === customDate) {
+                        updateBadgeText(null);
+                        // Clear the selected custom date in chrome.storage.local
+                        chrome.storage.local.remove('selectedCustomDate');
+                    }
+                });
+            }
+        } else {
+            console.error('Error accessing Chrome storage:', chrome.runtime.lastError);
+        }
+    });
+}
 
-    // Ensure that customDatesList is defined before appending to it
-    const customDatesList = document.getElementById('custom-dates-list');
-    if (customDatesList) {
-        customDatesList.appendChild(listItem);
-    }
+// Function to create a delete button and add it to the list item
+function createDeleteButton(listItem, customDate) {
+    const deleteButton = document.createElement('button');
+    deleteButton.innerText = 'Delete';
+    deleteButton.addEventListener('click', () => {
+        removeCustomDate(customDate);
+    });
+    listItem.appendChild(deleteButton);
 }
 
 document.addEventListener('DOMContentLoaded', function () {
     const customDateInput = document.getElementById('custom-date-input');
-    const customDatesForm = document.getElementById('custom-dates-form');
+    const customDatesList = document.getElementById('custom-dates-list'); // Change this line
 
     // Event listener for the "Track" button
     const trackCustomDateButton = document.getElementById('track-custom-date');
@@ -48,7 +67,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (!customDates.has(customDate)) {
                         customDates.add(customDate);
                         chrome.storage.local.set({ customDates: Array.from(customDates) }, () => {
-                            displayCustomDateAsRadioButton(customDate);
+                            const listItem = document.createElement('li');
+                            const radioBtn = document.createElement('input');
+                            radioBtn.type = 'radio';
+                            radioBtn.name = 'custom-date-radio';
+                            radioBtn.value = customDate;
+                            listItem.appendChild(radioBtn);
+                            listItem.appendChild(document.createTextNode(customDate));
+
+                            // Add a delete button next to the custom date
+                            createDeleteButton(listItem, customDate);
+
+                            customDatesList.appendChild(listItem);
                             // Do not automatically check the newly added radio button
                             updateBadgeText(null);
                         });
@@ -61,8 +91,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // Event listener for the radio buttons
-    customDatesForm.addEventListener('change', function () {
-        const selectedCustomDate = customDatesForm.querySelector('input[name="custom-date-radio"]:checked');
+    customDatesList.addEventListener('change', function () { // Change this line
+        const selectedCustomDate = customDatesList.querySelector('input[name="custom-date-radio"]:checked'); // Change this line
         if (selectedCustomDate) {
             const customDate = selectedCustomDate.value;
             updateBadgeText(customDate);
@@ -83,12 +113,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Display custom dates in the list
             customDates.forEach((customDate) => {
-                displayCustomDateAsRadioButton(customDate);
+                const listItem = document.createElement('li');
+                const radioBtn = document.createElement('input');
+                radioBtn.type = 'radio';
+                radioBtn.name = 'custom-date-radio';
+                radioBtn.value = customDate;
+                listItem.appendChild(radioBtn);
+                listItem.appendChild(document.createTextNode(customDate));
+
+                // Add a delete button next to the custom date
+                createDeleteButton(listItem, customDate);
+
+                customDatesList.appendChild(listItem);
             });
 
             // Set the selected radio button based on the stored custom date
             if (selectedCustomDate) {
-                const radioBtn = customDatesForm.querySelector('input[value="' + selectedCustomDate + '"]');
+                const radioBtn = customDatesList.querySelector('input[value="' + selectedCustomDate + '"]');
                 if (radioBtn) {
                     radioBtn.checked = true;
                     updateBadgeText(selectedCustomDate); // Update badge with the stored custom date

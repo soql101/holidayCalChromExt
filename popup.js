@@ -2,7 +2,6 @@
 let customDatesList;
 
 // Function to calculate and update the badge text based on custom date
-// Function to calculate and update the badge text based on custom date
 function updateBadgeText(customDate) {
     // Check if the custom date input is empty or not in a valid date format
     if (!customDate || !/^\d{4}-\d{2}-\d{2}$/.test(customDate)) {

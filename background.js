@@ -23,7 +23,7 @@ function updateBadge() {
             const holidayDate = new Date(selectedCustomDate + 'T00:00:00'); // Set time to midnight
             const timeRemaining = holidayDate - currentDate;
             const days = Math.floor(timeRemaining / (1000 * 60 * 60 * 24)); // Convert milliseconds to days
-            const badgeText = `${days + 1} days`;
+            const badgeText = `${days + 1}`;
             chrome.action.setBadgeText({ text: badgeText });
         }
     });
